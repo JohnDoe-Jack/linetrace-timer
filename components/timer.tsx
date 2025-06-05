@@ -28,14 +28,6 @@ export function Timer() {
     setIsRunning(!isRunning)
   }
 
-  // ラップタイム記録
-  const recordLap = () => {
-    // 最大2回までラップを記録
-    if (laps.length < 2) {
-      setLaps([...laps, time])
-    }
-  }
-
   // タイマーリセット
   const resetTimer = () => {
     if (intervalRef.current) {
@@ -76,9 +68,6 @@ export function Timer() {
           {isRunning ? "停止" : "開始"}
         </Button>
 
-        <Button onClick={recordLap} disabled={!isRunning || laps.length >= 2} variant="outline" size="lg">
-          ラップ ({laps.length}/2)
-        </Button>
 
         <Button onClick={resetTimer} variant="secondary" size="lg">
           リセット
