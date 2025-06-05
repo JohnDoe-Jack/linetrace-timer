@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Timer } from "@/components/timer"
 import { ScoreboardDisplay } from "@/components/scoreboard-display"
 import { fetchScores } from "@/lib/actions"
-
+import type { ScoreType } from "@/lib/types"
 export default function TimerPage() {
-  const [scores, setScores] = useState([])
+  const [scores, setScores] = useState<ScoreType[]>([])
 
   // スコアデータを定期的に取得
   useEffect(() => {

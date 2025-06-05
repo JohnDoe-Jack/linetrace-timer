@@ -5,7 +5,7 @@ import type { ScoreType } from "@/lib/types"
 
 interface ScoreboardDisplayProps {
   scores: ScoreType[]
-  actions?: React.ReactNode
+  actions?: React.ReactElement<{ score: ScoreType }>
 }
 
 export function ScoreboardDisplay({ scores, actions }: ScoreboardDisplayProps) {
@@ -41,7 +41,7 @@ export function ScoreboardDisplay({ scores, actions }: ScoreboardDisplayProps) {
                 </TableCell>
                 {actions && (
                   <TableCell className="text-right">
-                    {React.cloneElement(actions as React.ReactElement, { score })}
+                    {React.cloneElement(actions, { score })}
                   </TableCell>
                 )}
               </TableRow>

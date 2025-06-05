@@ -5,10 +5,10 @@ import { ScoreForm } from "@/components/score-form"
 import { ScoreboardDisplay } from "@/components/scoreboard-display"
 import { ScoreActions } from "@/components/score-actions"
 import { fetchScores } from "@/lib/actions"
-
+import type { ScoreType } from "@/lib/types"
 export default function ScoreboardPage() {
-  const [scores, setScores] = useState([])
-  const [editingScore, setEditingScore] = useState(null)
+  const [scores, setScores] = useState<ScoreType[]>([])
+  const [editingScore, setEditingScore] = useState<ScoreType | null>(null)
 
   // スコアデータを取得
   const loadScores = async () => {

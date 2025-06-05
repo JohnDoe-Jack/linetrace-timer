@@ -1,16 +1,15 @@
-import type { Database } from "better-sqlite3"
-import type { ScoreType, ScoreInput } from "./types"
+import type { ScoreType, ScoreInput } from "./types";
+import Database from "better-sqlite3";
 
 // SQLiteデータベースの初期化
-let db: Database
+let db: Database.Database | null = null;
 
 // データベース接続を取得
-export function getDb() {
+export function getDb(): Database.Database | null {
   if (!db) {
     // サーバーサイドでのみ実行
     if (typeof window === "undefined") {
-      const sqlite = require("better-sqlite3")
-      db = new sqlite("line-trace.db")
+      db = new Database("line-trace.db");
 
       // スコアテーブルの作成（存在しない場合）
       db.exec(`
@@ -23,93 +22,147 @@ export function getDb() {
           finalScore REAL NOT NULL,
           createdAt TEXT DEFAULT CURRENT_TIMESTAMP
         )
-      `)
+      `);
     }
   }
 
-  return db
+  return db;
+}
+
+// データベースの型定義
+interface DatabaseScore {
+  id: number;
+  playerName: string;
+  time: number;
+  divineHandCount: number;
+  isHardCourse: number; // SQLiteでは0/1
+  finalScore: number;
+  createdAt: string;
 }
 
 // スコア一覧を取得
 export function getAllScores(): ScoreType[] {
-  const db = getDb()
+  const db = getDb();
+
+  if (!db) {
+    console.error("データベース接続エラー");
+    return [];
+  }
 
   try {
     const scores = db
-      .prepare(`
-      SELECT 
-        id, playerName, time, divineHandCount, 
-        isHardCourse, finalScore, createdAt
-      FROM scores
-      ORDER BY finalScore ASC
-    `)
-      .all()
+      .prepare(
+        `
+        SELECT 
+          id, playerName, time, divineHandCount, 
+          isHardCourse, finalScore, createdAt
+        FROM scores
+        ORDER BY finalScore ASC
+        `
+      )
+      .all() as DatabaseScore[];
 
     // SQLiteのブール値を変換
-    return scores.map((score) => ({
-      ...score,
-      isHardCourse: Boolean(score.isHardCourse),
-    }))
-  } catch (error) {
-    console.error("スコア取得エラー:", error)
-    return []
+    return scores.map(
+      (score: DatabaseScore): ScoreType => ({
+        id: score.id,
+        playerName: score.playerName,
+        time: score.time,
+        divineHandCount: score.divineHandCount,
+        isHardCourse: Boolean(score.isHardCourse),
+        finalScore: score.finalScore,
+        createdAt: score.createdAt,
+      })
+    );
+  } catch (error: unknown) {
+    console.error("スコア取得エラー:", error);
+    return [];
   }
 }
 
 // スコアを追加
 export function insertScore(score: ScoreInput): number {
-  const db = getDb()
+  const db = getDb();
+
+  if (!db) {
+    throw new Error("データベース接続エラー");
+  }
 
   try {
-    const result = db
-      .prepare(`
+    const stmt = db.prepare(`
       INSERT INTO scores (playerName, time, divineHandCount, isHardCourse, finalScore)
       VALUES (?, ?, ?, ?, ?)
-    `)
-      .run(score.playerName, score.time, score.divineHandCount, score.isHardCourse ? 1 : 0, score.finalScore)
+    `);
 
-    return result.lastInsertRowid as number
-  } catch (error) {
-    console.error("スコア追加エラー:", error)
-    throw error
+    const result = stmt.run(
+      score.playerName,
+      score.time,
+      score.divineHandCount,
+      score.isHardCourse ? 1 : 0,
+      score.finalScore
+    );
+
+    if (typeof result.lastInsertRowid !== "number") {
+      throw new Error("スコアの挿入に失敗しました");
+    }
+
+    return result.lastInsertRowid;
+  } catch (error: unknown) {
+    console.error("スコア追加エラー:", error);
+    throw error;
   }
 }
 
 // スコアを更新
 export function updateScoreById(id: number, score: ScoreInput): boolean {
-  const db = getDb()
+  const db = getDb();
+
+  if (!db) {
+    throw new Error("データベース接続エラー");
+  }
 
   try {
-    const result = db
-      .prepare(`
+    const stmt = db.prepare(`
       UPDATE scores
       SET playerName = ?, time = ?, divineHandCount = ?, isHardCourse = ?, finalScore = ?
       WHERE id = ?
-    `)
-      .run(score.playerName, score.time, score.divineHandCount, score.isHardCourse ? 1 : 0, score.finalScore, id)
+    `);
 
-    return result.changes > 0
-  } catch (error) {
-    console.error("スコア更新エラー:", error)
-    throw error
+    const result = stmt.run(
+      score.playerName,
+      score.time,
+      score.divineHandCount,
+      score.isHardCourse ? 1 : 0,
+      score.finalScore,
+      id
+    );
+
+    return result.changes > 0;
+  } catch (error: unknown) {
+    console.error("スコア更新エラー:", error);
+    throw error;
   }
 }
 
 // スコアを削除
 export function deleteScoreById(id: number): boolean {
-  const db = getDb()
+  const db = getDb();
+
+  if (!db) {
+    throw new Error("データベース接続エラー");
+  }
 
   try {
-    const result = db
-      .prepare(`
+    const stmt = db.prepare(`
       DELETE FROM scores
       WHERE id = ?
-    `)
-      .run(id)
+    `);
 
-    return result.changes > 0
-  } catch (error) {
-    console.error("スコア削除エラー:", error)
-    throw error
+    const result = stmt.run(id);
+
+    return result.changes > 0;
+  } catch (error: unknown) {
+    console.error("スコア削除エラー:", error);
+    throw error;
   }
 }
