@@ -8,6 +8,18 @@ interface ScoreboardDisplayProps {
   actions?: React.ReactElement<{ score: ScoreType }>
 }
 
+// コース難易度のラベルとバリアントを取得
+function getCourseBadge(courseLevel: 'beginner' | 'intermediate' | 'advanced') {
+  switch (courseLevel) {
+    case 'beginner':
+      return { label: '初級', variant: 'outline' as const }
+    case 'intermediate':
+      return { label: '中級', variant: 'secondary' as const }
+    case 'advanced':
+      return { label: '上級', variant: 'default' as const }
+  }
+}
+
 export function ScoreboardDisplay({ scores, actions }: ScoreboardDisplayProps) {
   return (
     <div className="overflow-x-auto">
@@ -30,22 +42,25 @@ export function ScoreboardDisplay({ scores, actions }: ScoreboardDisplayProps) {
               </TableCell>
             </TableRow>
           ) : (
-            scores.map((score) => (
-              <TableRow key={score.id}>
-                <TableCell className="font-medium">{score.playerName}</TableCell>
-                <TableCell className="text-right font-bold">{score.finalScore.toFixed(2)}秒</TableCell>
-                <TableCell className="text-right">{score.time.toFixed(2)}秒</TableCell>
-                <TableCell className="text-center">{score.divineHandCount}回</TableCell>
-                <TableCell>
-                  <Badge variant={score.isHardCourse ? "default" : "outline"}>{score.isHardCourse ? "難" : "易"}</Badge>
-                </TableCell>
-                {actions && (
-                  <TableCell className="text-right">
-                    {React.cloneElement(actions, { score })}
+            scores.map((score) => {
+              const courseBadge = getCourseBadge(score.courseLevel)
+              return (
+                <TableRow key={score.id}>
+                  <TableCell className="font-medium">{score.playerName}</TableCell>
+                  <TableCell className="text-right font-bold">{score.finalScore.toFixed(2)}秒</TableCell>
+                  <TableCell className="text-right">{score.time.toFixed(2)}秒</TableCell>
+                  <TableCell className="text-center">{score.divineHandCount}回</TableCell>
+                  <TableCell>
+                    <Badge variant={courseBadge.variant}>{courseBadge.label}</Badge>
                   </TableCell>
-                )}
-              </TableRow>
-            ))
+                  {actions && (
+                    <TableCell className="text-right">
+                      {React.cloneElement(actions as React.ReactElement<{ score: ScoreType }>, { score })}
+                    </TableCell>
+                  )}
+                </TableRow>
+              )
+            })
           )}
         </TableBody>
       </Table>

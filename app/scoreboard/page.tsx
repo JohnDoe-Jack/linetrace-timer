@@ -5,6 +5,7 @@ import { ScoreForm } from "@/components/score-form"
 import { ScoreboardDisplay } from "@/components/scoreboard-display"
 import { ScoreActions } from "@/components/score-actions"
 import { fetchScores } from "@/lib/actions"
+import { Timer } from "@/components/timer"
 import type { ScoreType } from "@/lib/types"
 export default function ScoreboardPage() {
   const [scores, setScores] = useState<ScoreType[]>([])
@@ -42,6 +43,10 @@ export default function ScoreboardPage() {
             scores={scores}
             actions={<ScoreActions onEdit={setEditingScore} onDelete={loadScores} />}
           />
+        </div>
+        <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-lg">
+          <h2 className="text-2xl font-bold mb-4 text-center">タイマー</h2>
+          <Timer />
         </div>
       </div>
     </div>

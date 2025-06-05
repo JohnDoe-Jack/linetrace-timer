@@ -18,11 +18,21 @@ export function getDb(): Database.Database | null {
           playerName TEXT NOT NULL,
           time REAL NOT NULL,
           divineHandCount INTEGER NOT NULL DEFAULT 0,
-          isHardCourse INTEGER NOT NULL DEFAULT 1,
+          courseLevel TEXT NOT NULL DEFAULT 'advanced',
           finalScore REAL NOT NULL,
           createdAt TEXT DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // 既存のテーブルに新しいカラムを追加（マイグレーション）
+      try {
+        db.exec(
+          `ALTER TABLE scores ADD COLUMN courseLevel TEXT DEFAULT 'advanced'`
+        );
+      } catch (error) {
+        // カラムが既に存在する場合はエラーを無視
+        console.warn("カラムの追加に失敗:", error);
+      }
     }
   }
 
@@ -35,7 +45,7 @@ interface DatabaseScore {
   playerName: string;
   time: number;
   divineHandCount: number;
-  isHardCourse: number; // SQLiteでは0/1
+  courseLevel: string;
   finalScore: number;
   createdAt: string;
 }
@@ -55,21 +65,23 @@ export function getAllScores(): ScoreType[] {
         `
         SELECT 
           id, playerName, time, divineHandCount, 
-          isHardCourse, finalScore, createdAt
+          courseLevel, finalScore, createdAt
         FROM scores
         ORDER BY finalScore ASC
         `
       )
       .all() as DatabaseScore[];
 
-    // SQLiteのブール値を変換
     return scores.map(
       (score: DatabaseScore): ScoreType => ({
         id: score.id,
         playerName: score.playerName,
         time: score.time,
         divineHandCount: score.divineHandCount,
-        isHardCourse: Boolean(score.isHardCourse),
+        courseLevel: score.courseLevel as
+          | "beginner"
+          | "intermediate"
+          | "advanced",
         finalScore: score.finalScore,
         createdAt: score.createdAt,
       })
@@ -90,7 +102,7 @@ export function insertScore(score: ScoreInput): number {
 
   try {
     const stmt = db.prepare(`
-      INSERT INTO scores (playerName, time, divineHandCount, isHardCourse, finalScore)
+      INSERT INTO scores (playerName, time, divineHandCount, courseLevel, finalScore)
       VALUES (?, ?, ?, ?, ?)
     `);
 
@@ -98,7 +110,7 @@ export function insertScore(score: ScoreInput): number {
       score.playerName,
       score.time,
       score.divineHandCount,
-      score.isHardCourse ? 1 : 0,
+      score.courseLevel,
       score.finalScore
     );
 
@@ -124,7 +136,7 @@ export function updateScoreById(id: number, score: ScoreInput): boolean {
   try {
     const stmt = db.prepare(`
       UPDATE scores
-      SET playerName = ?, time = ?, divineHandCount = ?, isHardCourse = ?, finalScore = ?
+      SET playerName = ?, time = ?, divineHandCount = ?, courseLevel = ?, finalScore = ?
       WHERE id = ?
     `);
 
@@ -132,7 +144,7 @@ export function updateScoreById(id: number, score: ScoreInput): boolean {
       score.playerName,
       score.time,
       score.divineHandCount,
-      score.isHardCourse ? 1 : 0,
+      score.courseLevel,
       score.finalScore,
       id
     );

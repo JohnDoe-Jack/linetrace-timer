@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { addScore, updateScore } from "@/lib/actions"
 import type { ScoreType } from "@/lib/types"
 
@@ -19,7 +19,7 @@ export function ScoreForm({ editingScore, onComplete }: ScoreFormProps) {
   const [playerName, setPlayerName] = useState("")
   const [time, setTime] = useState("")
   const [divineHandCount, setDivineHandCount] = useState("0")
-  const [isHardCourse, setIsHardCourse] = useState(true)
+  const [courseLevel, setCourseLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('advanced')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 編集モードの場合、フォームに値をセット
@@ -28,25 +28,25 @@ export function ScoreForm({ editingScore, onComplete }: ScoreFormProps) {
       setPlayerName(editingScore.playerName)
       setTime(editingScore.time.toString())
       setDivineHandCount(editingScore.divineHandCount.toString())
-      setIsHardCourse(editingScore.isHardCourse)
+      setCourseLevel(editingScore.courseLevel)
     } else {
       // 新規作成モードではフォームをリセット
       setPlayerName("")
       setTime("")
       setDivineHandCount("0")
-      setIsHardCourse(true)
+      setCourseLevel('advanced')
     }
   }, [editingScore])
 
-  // スコア計算
-  const calculateFinalScore = (time: number, divineHandCount: number, isHardCourse: boolean) => {
+  // スコア計算（修正版）
+  const calculateFinalScore = (time: number, divineHandCount: number, courseLevel: 'beginner' | 'intermediate' | 'advanced') => {
     // 神の手による加算（1回につき+5秒）
     const divineHandPenalty = divineHandCount * 5
 
-    // コース選択による加算（簡単コースは+10秒）
-    const coursePenalty = isHardCourse ? 0 : 10
+    // コース難易度による加算
+    const coursePenalty = courseLevel === 'beginner' ? 30 : courseLevel === 'intermediate' ? 10 : 0
 
-    // 最終スコア = タイム + 神の手ペナルティ + コースペナルティ
+    // 最終スコア = タイム + 神の手ペナルティ + コース難易度ペナルティ
     return time + divineHandPenalty + coursePenalty
   }
 
@@ -61,13 +61,13 @@ export function ScoreForm({ editingScore, onComplete }: ScoreFormProps) {
     try {
       const timeValue = Number.parseFloat(time)
       const divineHandValue = Number.parseInt(divineHandCount)
-      const finalScore = calculateFinalScore(timeValue, divineHandValue, isHardCourse)
+      const finalScore = calculateFinalScore(timeValue, divineHandValue, courseLevel)
 
       const scoreData = {
         playerName,
         time: timeValue,
         divineHandCount: divineHandValue,
-        isHardCourse,
+        courseLevel,
         finalScore,
       }
 
@@ -83,7 +83,7 @@ export function ScoreForm({ editingScore, onComplete }: ScoreFormProps) {
       setPlayerName("")
       setTime("")
       setDivineHandCount("0")
-      setIsHardCourse(true)
+      setCourseLevel('advanced')
       onComplete()
     } catch (error) {
       console.error("スコア保存エラー:", error)
@@ -130,9 +130,18 @@ export function ScoreForm({ editingScore, onComplete }: ScoreFormProps) {
         <p className="text-sm text-muted-foreground">1回につき+5秒のペナルティ</p>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch id="courseType" checked={isHardCourse} onCheckedChange={setIsHardCourse} />
-        <Label htmlFor="courseType">{isHardCourse ? "難しいコース" : "簡単なコース (+10秒)"}</Label>
+      <div className="space-y-2">
+        <Label htmlFor="courseLevel">コース難易度</Label>
+        <Select value={courseLevel} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => setCourseLevel(value)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="beginner">初級 (+30秒)</SelectItem>
+            <SelectItem value="intermediate">中級 (+10秒)</SelectItem>
+            <SelectItem value="advanced">上級 (+0秒)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* 計算されるスコアのプレビュー表示 */}
@@ -143,13 +152,14 @@ export function ScoreForm({ editingScore, onComplete }: ScoreFormProps) {
             {calculateFinalScore(
               Number.parseFloat(time) || 0,
               Number.parseInt(divineHandCount) || 0,
-              isHardCourse,
+              courseLevel,
             ).toFixed(2)}
             秒
           </p>
           <p className="text-sm text-muted-foreground">
-            タイム: {Number.parseFloat(time) || 0}秒 + 神の手: {(Number.parseInt(divineHandCount) || 0) * 5}秒 + コース:{" "}
-            {isHardCourse ? 0 : 10}秒
+            タイム: {Number.parseFloat(time) || 0}秒 + 神の手: {(Number.parseInt(divineHandCount) || 0) * 5}秒 + コース: {
+              courseLevel === 'beginner' ? 30 : courseLevel === 'intermediate' ? 10 : 0
+            }秒
           </p>
         </div>
       )}
